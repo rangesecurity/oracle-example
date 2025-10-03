@@ -1,0 +1,12 @@
+/target
+test-ledger/
+
+.DS_Store
+
+keypair
+
+client-ts/node_modules
+
+.env
+
+node_modules
