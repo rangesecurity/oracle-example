@@ -1,16 +1,18 @@
-import { PublicKey, Keypair } from "@solana/web3.js";
+import {
+  PublicKey, Keypair, TransactionInstruction, SYSVAR_CLOCK_PUBKEY,
+  SYSVAR_SLOT_HASHES_PUBKEY,
+  SYSVAR_INSTRUCTIONS_PUBKEY,
+} from "@solana/web3.js";
 import { OracleJob, CrossbarClient } from "@switchboard-xyz/common";
 import * as sb from "@switchboard-xyz/on-demand";
+import { getDefaultQueue } from "@switchboard-xyz/on-demand";
 
 
 export const PROGRAM_ID = new PublicKey("FH4YSCbf3vBKZKMJjtSqAeRQmXDM7HCNVaUuDiivPgYA");
 
 
-
-// todo()!: make the oracle job and the function to upload it to the oracles, get a signature and a result.
-
 // Example Oracle Job to fetch Range Risk Score for a given address
-function getRangeRiskScoreJob(payer: Keypair): OracleJob {
+export function getRangeRiskScoreJob(): OracleJob {
   const job = OracleJob.fromObject({
     tasks: [
       {
@@ -40,12 +42,19 @@ function getRangeRiskScoreJob(payer: Keypair): OracleJob {
 }
 
 // Function to fetch the oracle job signature and result
-// missing the part where we get and return the signature
-async function getOracleJobSignature() {
-  const { crossbar, queue, gateway } = await sb.AnchorUtils.loadEnv();
+export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash: string; queue_account: PublicKey }> {
+  const { connection, gateway, rpcUrl } = await sb.AnchorUtils.loadEnv();
 
-  // You'll need to provide the payer keypair and ADDRESS
-  const payer = Keypair.generate(); // Replace with your actual payer keypair
+  // Get the queue for the network you're deploying on
+  //
+  // Mainnet Queue:
+  //let queue = await getDefaultQueue(rpcUrl);
+
+  // Devnet Queue:
+  let queue = await sb.getDefaultDevnetQueue(rpcUrl);
+  let queue_account = queue.pubkey;
+
+  console.log("Using Payer:", payer.publicKey.toBase58(), "\n");
 
   // ----------------- NEEDS TO BE DONE -----------------
   // Fetch Job Hash and Median Response
@@ -58,55 +67,40 @@ async function getOracleJobSignature() {
     feedConfigs: [
       {
         feed: {
-          jobs: [getRangeRiskScoreJob(payer)],
+          jobs: [getRangeRiskScoreJob()],
         },
       },
     ],
     variableOverrides: {
       RANGE_API_KEY: process.env.RANGE_API_KEY!,
-      ADDRESS: '5PAhQiYdLBd6SVdjzBQDxUAEFyDdF5ExNPQfcscnPRj5',
     },
   });
   console.log(res.median_responses);
+
+  const summary = res.median_responses[0];
+  if (!summary) throw new Error("No median responses returned");
+
+  return { feed_hash: summary.feed_hash, queue_account };
 }
 
+export function buildGetRiskScoreIx(quote: PublicKey, query_account: PublicKey, feed_hash: string): TransactionInstruction {
+  // String to byte array
+  const data = Buffer.from(feed_hash);
 
-// todo()!: build the instruction that will be used to call the program that will re-build the oracle job, confirm signature and log the result.
+  // Accounts we need to pass to the program
+  //  [quote, queue, clock_sysvar, slothashes_sysvar, instructions_sysvar, query_account]
+  return new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      // payer_info
+      { pubkey: quote, isSigner: true, isWritable: false },
+      { pubkey: quote, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, // clock_sysvar_info
+      { pubkey: SYSVAR_SLOT_HASHES_PUBKEY, isSigner: false, isWritable: false }, // slothashes_sysvar_info
+      { pubkey: SYSVAR_INSTRUCTIONS_PUBKEY, isSigner: false, isWritable: false }, // instructions_sysvar_info
+      { pubkey: query_account, isSigner: false, isWritable: false }, // query_account_info
 
-// EXAMPLE OF THE SDK BUILDER WE WILL DEVELOP
-
-// Instruction builders Examples
-
-// export const GLOBAL_CONFIG_SEED = "range_global_config";
-// export const STORE_SEED = "range_blacknote_store";
-
-// export function buildInitializeIx(payer: PublicKey, globalConfigPda: PublicKey): TransactionInstruction {
-//   // Discriminator 0 => InitializeBlackNote
-//   const data = Buffer.from([0x00]);
-//   return new TransactionInstruction({
-//     programId: PROGRAM_ID,
-//     keys: [
-//       { pubkey: payer, isSigner: true, isWritable: true },   // payer_info
-//       { pubkey: globalConfigPda, isSigner: false, isWritable: true }, // global_config_info
-//       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, // _system_program_info
-//       { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }, // rent_sysvar_info
-//     ],
-//     data,
-//   });
-// }
-
-// export const HELLOBLACKNOTE_PROGRAM_ID = new PublicKey("3WH4hKSiTqfapYBfy4VfVmZHgErrwUNR3zdGSG2gQXrV");
-
-// export function buildHelloBlacknoteIx(payer: PublicKey, subject: PublicKey, storePda: PublicKey): TransactionInstruction {
-
-//   return new TransactionInstruction({
-//     programId: HELLOBLACKNOTE_PROGRAM_ID,
-//     keys: [
-//       { pubkey: payer, isSigner: true, isWritable: false },   // payer_info
-//       { pubkey: subject, isSigner: false, isWritable: false }, // subject_info
-//       { pubkey: storePda, isSigner: false, isWritable: false }, // store_info
-//       { pubkey: PROGRAM_ID, isSigner: false, isWritable: false },
-//     ],
-//     data: Buffer.from([]),
-//   });
-// }
+    ],
+    data,
+  });
+}
