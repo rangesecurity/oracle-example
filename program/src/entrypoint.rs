@@ -4,20 +4,20 @@
 /// - `program_entrypoint` registers the main entrypoint to the Solana runtime.
 /// - `default_panic_handler` ensures panics are handled in a predictable way.
 use pinocchio::{
-    account_info::AccountInfo, msg, program_entrypoint, program_error::ProgramError,
-    pubkey::Pubkey, ProgramResult,
+    account_info::AccountInfo, program_entrypoint, program_error::ProgramError, pubkey::Pubkey,
+    ProgramResult,
 };
 extern crate alloc;
 
 use alloc::{format, string::ToString, vec};
 
 use pinocchio_log::log;
-use switchboard_on_demand::{get_slot, QuoteVerifier};
+use switchboard_on_demand::{get_slot, QuoteVerifier, SbFeed};
 use switchboard_protos::{
     oracle_job::{
         self as oracle,
         oracle_job::{
-            self, http_task::Header, multiply_task, task, BoundTask, HttpTask, JsonParseTask,
+            http_task::Header, multiply_task, task, BoundTask, HttpTask, JsonParseTask,
             MultiplyTask, Task,
         },
     },
@@ -60,6 +60,9 @@ fn process_instruction(
         query_account_key
     );
 
+    // According to our Call  (as far as I understood we should make the job onchain and get a hash from it):
+
+    // -------- MAKE ORACLE JOB TO GET RISK SCORE FROM RANGE API --------
     // Make the HTTP task
     let http_schema = HttpTask {
         url: Some(url),
@@ -101,15 +104,11 @@ fn process_instruction(
     // Bound Task to ensure the risk score is between 0 and 100
     //
     let boundp_schema = BoundTask {
-        lower_bound: oracle_job, // Didn't get what to put here as the Job is only done afterwards
-        lower_bound_value: Some("0".to_string()),
-        on_exceeds_lower_bound: oracle_job,
-        on_exceeds_lower_bound_value: Some("0".to_string()),
-        upper_bound: oracle_job,
-        upper_bound_value: Some("100".to_string()),
-        on_exceeds_upper_bound: oracle_job,
-        on_exceeds_upper_bound_value: Some("100".to_string()),
+        lower_bound_value: Some("0".into()),
+        upper_bound_value: Some("100".into()),
+        ..Default::default()
     };
+
     let bound_task = Task {
         task: Some(task::Task::BoundTask(boundp_schema)),
     };
@@ -131,6 +130,10 @@ fn process_instruction(
     // Derive the feed hash from the OracleJob
     // let derived_feed_hash = ?????
 
+    // verify the derived feed hash matches the expected feed hash
+
+    // -------- END MAKING ORACLE JOB TO GET FEED HASH --------
+
     let slot = get_slot(clock_sysvar);
 
     // For pinocchio QuoteVerifier verifies and deserializes the quote data
@@ -143,16 +146,16 @@ fn process_instruction(
         .verify_account(quote) //verify the quote account
         .unwrap();
 
-    // Parse and display each feed
-    for (index, feed_info) in quote_data.feeds().iter().enumerate() {
-        // Compare the derived feed hash with the one passed in instruction data
-        log!("Feed #{}: {}", index + 1, feed_info.hex_id().as_str());
-        if feed_info.feed_id() != &expected_feed_hash {
-            msg!("Feed ID does not match expected feed hash");
-            return Err(ProgramError::InvalidInstructionData);
+    // Compare feed ids and read value
+    let mut matched = false;
+    for feed_info in quote_data.feeds().iter() {
+        if feed_info.feed_id() == &expected_feed_hash {
+            matched = true;
+            log!("Rßisk Score {}", feed_info.value().to_string().as_str());
         }
-
-        log!("Value: {}", feed_info.value().to_string().as_str());
+    }
+    if !matched {
+        return Err(ProgramError::InvalidInstructionData);
     }
 
     Ok(())

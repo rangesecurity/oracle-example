@@ -1,36 +1,19 @@
 # Questions
 
-## 1 Bound Task
+## 1) Building Oracle Job on Chain
 
-The bound task using the proto crate is a bit different for TS as we need to
-deterime the targeted Task:
+a) After building the oracle job how do we verify the hash is exactly the same
+as expected? b) How do we get feed hash? c) Or this part is not needed and we
+pass the hash just to make sure the accounts we are calling are getting the
+correct hash?
 
-```rust
-// Bound Task to ensure the risk score is between 0 and 100
-    //
-    let boundp_schema = BoundTask {
-        lower_bound: oracle_job, // Didn't get what to put here as the Job is only done afterwards
-        lower_bound_value: Some("0".to_string()),
-        on_exceeds_lower_bound: oracle_job,
-        on_exceeds_lower_bound_value: Some("0".to_string()),
-        upper_bound: oracle_job,
-        upper_bound_value: Some("100".to_string()),
-        on_exceeds_upper_bound: oracle_job,
-        on_exceeds_upper_bound_value: Some("100".to_string()),
-    };
-    let bound_task = Task {
-        task: Some(task::Task::BoundTask(boundp_schema)),
-    };
-```
-
-What oracle job is to be defined here?
-
-## 2 Verifying and Fetching Data
+## 2) Verifying and Fetching Data on chain for pinocchio
 
 Is QuoteVerifier::new() the best way to verify the hash provided is correct and
 to fetch the data? Please refer to program code.
 
-## 3 getOracleJobSignature
+## 3) Client - TESTS - getOracleJobSignature
 
-Is the code use getOracleJobSignature the correct way of getting a job hash and
-make this job available to Oracles?
+Is the fetchSignaturesConsensus the correct way of getting a job hash and make
+this job available to Oracles? Shouldn't we create a feed account and get the
+pubkey first?

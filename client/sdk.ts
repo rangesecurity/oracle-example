@@ -43,7 +43,7 @@ export function getRangeRiskScoreJob(): OracleJob {
 
 // Function to fetch the oracle job signature and result
 export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash: string; queue_account: PublicKey }> {
-  const { connection, gateway, rpcUrl } = await sb.AnchorUtils.loadEnv();
+  const { gateway, rpcUrl } = await sb.AnchorUtils.loadEnv();
 
   // Get the queue for the network you're deploying on
   //
@@ -56,10 +56,10 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash
 
   console.log("Using Payer:", payer.publicKey.toBase58(), "\n");
 
-  // ----------------- NEEDS TO BE DONE -----------------
+  // ----------------- As per Example given in the chat -----------------
   // Fetch Job Hash and Median Response
   // Return the job hash and log the median response
-  // ----------------------------------------------------
+  // --------------------------------------------------------------------
 
   const res = await queue.fetchSignaturesConsensus({
     gateway,
