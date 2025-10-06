@@ -1,11 +1,10 @@
 [package]
-name = "risk-oracle"
+name = "risk_oracle"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib"]
-name = "risk_oracle"
 
 [dependencies]
 pinocchio = { version = "0.9.2", features = ["std"] }
@@ -15,9 +14,14 @@ pinocchio-system = "0.3.0"
 switchboard-on-demand = { version = "0.9.2", features = ["devnet", "pinocchio"] }
 switchboard-protos = "0.2.0"
 bs58 = "0.5"
+sb-on-demand-schemas = "0.1.1"
 
 [features]
 logging = []
 bpf-entrypoint = []
 default = []
 custom-heap = []
+custom-panic = []
+
+
+

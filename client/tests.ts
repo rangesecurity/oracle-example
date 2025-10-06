@@ -1,4 +1,5 @@
-// client/tests/initializeBlackNote.spec.ts
+// client/tests.ts
+// client/sdk.ts
 // Run the tests: npm test   
 
 import { strict as assert } from "assert";
@@ -13,9 +14,10 @@ import {
 } from "@solana/web3.js";
 import "mocha";
 import * as path from "path";
-import { buildGetRiskScoreIx, getOracleJobSignature, PROGRAM_ID } from "./sdk";
+import { buildGetRiskScoreIx, getOracleJobSignature, PROGRAM_ID } from "./sdk.ts";
+import "dotenv/config";
 
-
+// Load a Keypair from a JSON file
 function loadKeypairFromFile(p: string): Keypair {
   const raw = fs.readFileSync(p, "utf8");
   const secret = Uint8Array.from(JSON.parse(raw));
@@ -23,6 +25,7 @@ function loadKeypairFromFile(p: string): Keypair {
 }
 
 const RPC_URL = process.env.RPC_URL ?? "http://127.0.0.1:8899";
+const DEV_WALLET_KEYPAIR_PATH = process.env.DEV_WALLET_KEYPAIR_PATH ?? "./../keypair.json";
 
 describe("Initialize Oracle Example", function () {
   this.timeout(60_000);
@@ -30,7 +33,7 @@ describe("Initialize Oracle Example", function () {
   const connection = new Connection(RPC_URL, "confirmed");
 
   const DEV_WALLET = loadKeypairFromFile(
-    path.resolve(process.env.DEV_WALLET_KEYPAIR_PATH || "./../keypair.json")
+    path.resolve(DEV_WALLET_KEYPAIR_PATH)
   );
 
 

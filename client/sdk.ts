@@ -8,7 +8,7 @@ import * as sb from "@switchboard-xyz/on-demand";
 import { getDefaultQueue } from "@switchboard-xyz/on-demand";
 
 
-export const PROGRAM_ID = new PublicKey("3WH4hKSiTqfapYBfy4VfVmZHgErrwUNR3zdGSG2gQXrV");
+export const PROGRAM_ID = new PublicKey("CR8mpiY9eEbNkU8w4VJkGB4gzEnozp739jwvTiXRmACc");
 
 
 // Example Oracle Job to fetch Range Risk Score for a given address
@@ -53,6 +53,7 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash
   // Devnet Queue:
   let queue = await sb.getDefaultDevnetQueue(rpcUrl);
   let queue_account = queue.pubkey;
+  let crossbar_client = new CrossbarClient(rpcUrl);
 
   console.log("Using Payer:", payer.publicKey.toBase58(), "\n");
 
@@ -61,6 +62,7 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash
   // Return the job hash and log the median response
   // --------------------------------------------------------------------
 
+  // Ask the network to compute consensus + give us a feed hash
   const res = await queue.fetchSignaturesConsensus({
     gateway,
     useEd25519: true,
@@ -80,10 +82,20 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash
   const summary = res.median_responses[0];
   if (!summary) throw new Error("No median responses returned");
 
+  const sigVerifyIx = await queue.fetchQuoteIx(
+    crossbar_client,
+    [summary.feed_hash],
+    {
+      variableOverrides: { RANGE_API_KEY: process.env.RANGE_API_KEY! },
+      numSignatures: 1,
+      instructionIdx: 0, // we’ll put this ix at index 0 in the tx
+    }
+  );
+
   return { feed_hash: summary.feed_hash, queue_account };
 }
 
-export function buildGetRiskScoreIx(quote: PublicKey, query_account: PublicKey, feed_hash: string): TransactionInstruction {
+export function buildGetRiskScoreIx(queue: PublicKey, query_account: PublicKey, feed_hash: string): TransactionInstruction {
   // String to byte array
   const data = Buffer.from(feed_hash);
 
@@ -93,7 +105,7 @@ export function buildGetRiskScoreIx(quote: PublicKey, query_account: PublicKey, 
     programId: PROGRAM_ID,
     keys: [
       // payer_info
-      { pubkey: quote, isSigner: false, isWritable: false },
+      { pubkey: queue, isSigner: false, isWritable: false }, // queue
       { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, // clock_sysvar_info
       { pubkey: SYSVAR_SLOT_HASHES_PUBKEY, isSigner: false, isWritable: false }, // slothashes_sysvar_info
       { pubkey: SYSVAR_INSTRUCTIONS_PUBKEY, isSigner: false, isWritable: false }, // instructions_sysvar_info

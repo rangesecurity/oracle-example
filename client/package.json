@@ -1,9 +1,9 @@
 {
-  "name": "harkness-setup",
+  "name": "oracle-example-client",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "mocha -r ts-node/register tests.ts"
+    "test": "TS_NODE_PROJECT=./tsconfig.json mocha -r ts-node/register ./tests.ts"
   },
   "keywords": [],
   "author": "",

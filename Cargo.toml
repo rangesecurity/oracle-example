@@ -1,6 +1,5 @@
 [workspace]
-members = ["program"]
+members = ["programs/risk_oracle_pinoccchio"]
 # Only run tests for the tests crate when you do `cargo test` at the root
 #default-members = ["tests"]
 resolver = "2"
-default-members = ["program"] 

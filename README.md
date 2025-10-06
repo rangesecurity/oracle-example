@@ -2,10 +2,9 @@
 
 ## 1) Building Oracle Job on Chain
 
-a) After building the oracle job how do we verify the hash is exactly the same
-as expected? b) How do we get feed hash? c) Or this part is not needed and we
-pass the hash just to make sure the accounts we are calling are getting the
-correct hash?
+a) Do we need to pass the Feed hash in the instruction data? We can get it from
+QuoteVerifier::new() right? Then since we are building the oracle job we can
+confirm we got the right feed?
 
 ## 2) Verifying and Fetching Data on chain for pinocchio
 
