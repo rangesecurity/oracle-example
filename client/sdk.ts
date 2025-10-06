@@ -93,7 +93,6 @@ export function buildGetRiskScoreIx(quote: PublicKey, query_account: PublicKey, 
     programId: PROGRAM_ID,
     keys: [
       // payer_info
-      { pubkey: quote, isSigner: true, isWritable: false },
       { pubkey: quote, isSigner: false, isWritable: false },
       { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, // clock_sysvar_info
       { pubkey: SYSVAR_SLOT_HASHES_PUBKEY, isSigner: false, isWritable: false }, // slothashes_sysvar_info
