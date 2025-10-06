@@ -7,15 +7,10 @@ import {
   Connection,
   Keypair,
   PublicKey,
-  SystemProgram,
-  SYSVAR_RENT_PUBKEY,
-  LAMPORTS_PER_SOL,
   Transaction,
-  TransactionInstruction,
   sendAndConfirmTransaction,
 
 } from "@solana/web3.js";
-import type { Finality } from "@solana/web3.js";
 import "mocha";
 import * as path from "path";
 import { buildGetRiskScoreIx, getOracleJobSignature, PROGRAM_ID } from "./sdk";
@@ -39,12 +34,12 @@ describe("Initialize Oracle Example", function () {
   );
 
 
-  it("initializes the GlobalConfig PDA (happy path)", async () => {
+  it("initializes the Oracle and call the Oracle Program", async () => {
     // Discriminator 0 => InitializeBlackNote
     let { feed_hash, queue_account } = await getOracleJobSignature(DEV_WALLET);
 
     // Get Quote and other accounts pubkeys
-    const query_account = PublicKey.fromString("5PAhQiYdLBd6SVdjzBQDxUAEFyDdF5ExNPQfcscnPRj5");
+    const query_account = new PublicKey("5PAhQiYdLBd6SVdjzBQDxUAEFyDdF5ExNPQfcscnPRj5");
 
     // Build and send tx
     const ix = buildGetRiskScoreIx(queue_account, query_account, feed_hash);

@@ -8,7 +8,7 @@ import * as sb from "@switchboard-xyz/on-demand";
 import { getDefaultQueue } from "@switchboard-xyz/on-demand";
 
 
-export const PROGRAM_ID = new PublicKey("FH4YSCbf3vBKZKMJjtSqAeRQmXDM7HCNVaUuDiivPgYA");
+export const PROGRAM_ID = new PublicKey("3WH4hKSiTqfapYBfy4VfVmZHgErrwUNR3zdGSG2gQXrV");
 
 
 // Example Oracle Job to fetch Range Risk Score for a given address
