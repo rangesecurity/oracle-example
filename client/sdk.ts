@@ -53,7 +53,7 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash
   // Devnet Queue:
   let queue = await sb.getDefaultDevnetQueue(rpcUrl);
   let queue_account = queue.pubkey;
-  let crossbar_client = new CrossbarClient(rpcUrl);
+  let crossbar_client = CrossbarClient.default();
 
   console.log("Using Payer:", payer.publicKey.toBase58(), "\n");
 
