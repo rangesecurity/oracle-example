@@ -3,7 +3,7 @@ import {
   SYSVAR_SLOT_HASHES_PUBKEY,
   SYSVAR_INSTRUCTIONS_PUBKEY,
 } from "@solana/web3.js";
-import { OracleJob, CrossbarClient } from "@switchboard-xyz/common";
+import { OracleJob, CrossbarClient, IOracleFeed } from "@switchboard-xyz/common";
 import * as sb from "@switchboard-xyz/on-demand";
 import { getDefaultQueue } from "@switchboard-xyz/on-demand";
 
@@ -42,7 +42,7 @@ export function getRangeRiskScoreJob(): OracleJob {
 }
 
 // Function to fetch the oracle job signature and result
-export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash: string; queue_account: PublicKey }> {
+export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash: string; queue_account: PublicKey; sigVerifyIx: TransactionInstruction }> {
   const { gateway, rpcUrl } = await sb.AnchorUtils.loadEnv();
 
   // Get the queue for the network you're deploying on
@@ -57,34 +57,51 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash
 
   console.log("Using Payer:", payer.publicKey.toBase58(), "\n");
 
-  // ----------------- As per Example given in the chat -----------------
-  // Fetch Job Hash and Median Response
-  // Return the job hash and log the median response
-  // --------------------------------------------------------------------
+  const feed: IOracleFeed = {
+    name: "Risk Score",
+    jobs: [getRangeRiskScoreJob()],
+    minJobResponses: 1,
+    minOracleSamples: 1,
+    maxJobRangePct: 100,
+  };
 
-  // Ask the network to compute consensus + give us a feed hash
-  const res = await queue.fetchSignaturesConsensus({
-    gateway,
-    useEd25519: true,
-    feedConfigs: [
-      {
-        feed: {
-          jobs: [getRangeRiskScoreJob()],
-        },
-      },
-    ],
-    variableOverrides: {
-      RANGE_API_KEY: process.env.RANGE_API_KEY!,
-    },
-  });
-  console.log(res.median_responses);
+  // returns canonical hash of the feed
+  const { feedId } = await crossbar_client.storeOracleFeed(feed);
 
-  const summary = res.median_responses[0];
-  if (!summary) throw new Error("No median responses returned");
+
+  // // Is this necessary if signatures are verified on-chain?
+  // // ------------------- // ------------------- 
+  // // Ask the network to compute consensus + give us a feed hash
+  // const res = await queue.fetchSignaturesConsensus({
+  //   gateway,
+  //   useEd25519: true,
+  //   feedConfigs: [
+  //     {
+  //       feed: {
+  //         jobs: [getRangeRiskScoreJob()],
+  //       },
+  //     },
+  //   ],
+  //   variableOverrides: {
+  //     RANGE_API_KEY: process.env.RANGE_API_KEY!,
+  //   },
+  // });
+  // console.log(res.median_responses);
+
+  // const summary = res.median_responses[0];
+  // if (!summary) throw new Error("No median responses returned");
+  // // console.log("FeedHash:", summary.feed_hash);
+  // // ------------------- // -------------------
+
+
+  console.log("FeedId:", feedId);
+
+
+  const feed_hash = feedId.startsWith("0x") ? feedId : `0x${feedId}`;
 
   const sigVerifyIx = await queue.fetchQuoteIx(
     crossbar_client,
-    [summary.feed_hash],
+    [feed_hash],
     {
       variableOverrides: { RANGE_API_KEY: process.env.RANGE_API_KEY! },
       numSignatures: 1,
@@ -92,12 +109,12 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash
     }
   );
 
-  return { feed_hash: summary.feed_hash, queue_account };
+  return { feed_hash, queue_account, sigVerifyIx };
 }
 
 export function buildGetRiskScoreIx(queue: PublicKey, query_account: PublicKey, feed_hash: string): TransactionInstruction {
   // String to byte array
-  const data = Buffer.from(feed_hash);
+  const data = Buffer.from(feed_hash.replace(/^0x/, ""), "hex");
 
   // Accounts we need to pass to the program
   //  [quote, queue, clock_sysvar, slothashes_sysvar, instructions_sysvar, query_account]

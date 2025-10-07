@@ -39,22 +39,21 @@ describe("Initialize Oracle Example", function () {
 
   it("initializes the Oracle and call the Oracle Program", async () => {
     // Discriminator 0 => InitializeBlackNote
-    let { feed_hash, queue_account } = await getOracleJobSignature(DEV_WALLET);
+    let { feed_hash, queue_account, sigVerifyIx } = await getOracleJobSignature(DEV_WALLET);
 
     // Get Quote and other accounts pubkeys
     const query_account = new PublicKey("5PAhQiYdLBd6SVdjzBQDxUAEFyDdF5ExNPQfcscnPRj5");
 
     // Build and send tx
     const ix = buildGetRiskScoreIx(queue_account, query_account, feed_hash);
-    const tx = new Transaction().add(ix);
+    const tx = new Transaction().add(sigVerifyIx, ix);
 
     // Fetch the latest blockhash
     const latest = await connection.getLatestBlockhash({ commitment: "confirmed" });
 
-    // Set fee payer + recent blockhash (caller should set feePayer; we still guard)
-    if (!tx.feePayer) throw new Error("tx.feePayer not set");
-    tx.recentBlockhash = latest.blockhash;
+    // Set fee payer + recent blockhash 
     tx.feePayer = DEV_WALLET.publicKey;
+    tx.recentBlockhash = latest.blockhash;
 
     const transactionSignature = await sendAndConfirmTransaction(
       connection,
