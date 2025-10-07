@@ -42,7 +42,7 @@ export function getRangeRiskScoreJob(): OracleJob {
 }
 
 // Function to fetch the oracle job signature and result
-export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash: string; queue_account: PublicKey; sigVerifyIx: TransactionInstruction }> {
+export async function getOracleJobSignature(payer: Keypair): Promise<{ queue_account: PublicKey; sigVerifyIx: TransactionInstruction }> {
   const { gateway, rpcUrl } = await sb.AnchorUtils.loadEnv();
 
   // Get the queue for the network you're deploying on
@@ -68,34 +68,7 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash
   // returns canonical hash of the feed
   const { feedId } = await crossbar_client.storeOracleFeed(feed);
 
-
-  // // Is this necessary if signatures are verified on-chain?
-  // // ------------------- // ------------------- 
-  // // Ask the network to compute consensus + give us a feed hash
-  // const res = await queue.fetchSignaturesConsensus({
-  //   gateway,
-  //   useEd25519: true,
-  //   feedConfigs: [
-  //     {
-  //       feed: {
-  //         jobs: [getRangeRiskScoreJob()],
-  //       },
-  //     },
-  //   ],
-  //   variableOverrides: {
-  //     RANGE_API_KEY: process.env.RANGE_API_KEY!,
-  //   },
-  // });
-  // console.log(res.median_responses);
-
-  // const summary = res.median_responses[0];
-  // if (!summary) throw new Error("No median responses returned");
-  // // console.log("FeedHash:", summary.feed_hash);
-  // // ------------------- // -------------------
-
-
   console.log("FeedId:", feedId);
-
 
   const feed_hash = feedId.startsWith("0x") ? feedId : `0x${feedId}`;
 
@@ -109,15 +82,13 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ feed_hash
     }
   );
 
-  return { feed_hash, queue_account, sigVerifyIx };
+  return { queue_account, sigVerifyIx };
 }
 
-export function buildGetRiskScoreIx(queue: PublicKey, query_account: PublicKey, feed_hash: string): TransactionInstruction {
-  // String to byte array
-  const data = Buffer.from(feed_hash.replace(/^0x/, ""), "hex");
+export function buildGetRiskScoreIx(queue: PublicKey, query_account: PublicKey): TransactionInstruction {
 
   // Accounts we need to pass to the program
-  //  [quote, queue, clock_sysvar, slothashes_sysvar, instructions_sysvar, query_account]
+  //  [queue, clock_sysvar, slothashes_sysvar, instructions_sysvar, query_account]
   return new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
@@ -129,6 +100,6 @@ export function buildGetRiskScoreIx(queue: PublicKey, query_account: PublicKey, 
       { pubkey: query_account, isSigner: false, isWritable: false }, // query_account_info
 
     ],
-    data,
+    data: Buffer.alloc(0), // no data to send
   });
 }

@@ -39,13 +39,13 @@ describe("Initialize Oracle Example", function () {
 
   it("initializes the Oracle and call the Oracle Program", async () => {
     // Discriminator 0 => InitializeBlackNote
-    let { feed_hash, queue_account, sigVerifyIx } = await getOracleJobSignature(DEV_WALLET);
+    let { queue_account, sigVerifyIx } = await getOracleJobSignature(DEV_WALLET);
 
     // Get Quote and other accounts pubkeys
     const query_account = new PublicKey("5PAhQiYdLBd6SVdjzBQDxUAEFyDdF5ExNPQfcscnPRj5");
 
     // Build and send tx
-    const ix = buildGetRiskScoreIx(queue_account, query_account, feed_hash);
+    const ix = buildGetRiskScoreIx(queue_account, query_account);
     const tx = new Transaction().add(sigVerifyIx, ix);
 
     // Fetch the latest blockhash
