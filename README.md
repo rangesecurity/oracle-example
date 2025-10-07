@@ -17,3 +17,5 @@ to fetch the data? Please refer to program code.
 Is the fetchSignaturesConsensus the correct way of getting a job hash and make
 this job available to Oracles? Shouldn't we create a feed account and get the
 pubkey first?
+
+Using fetchSignaturesConsensus to get the feedHash and pass it to the
