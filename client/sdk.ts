@@ -7,11 +7,19 @@ import { OracleJob, CrossbarClient, IOracleFeed } from "@switchboard-xyz/common"
 import * as sb from "@switchboard-xyz/on-demand";
 import { getDefaultQueue } from "@switchboard-xyz/on-demand";
 
-
+// The deployed Pinocchio program ID.
 export const PROGRAM_ID = new PublicKey("CR8mpiY9eEbNkU8w4VJkGB4gzEnozp739jwvTiXRmACc");
 
 
 // Example Oracle Job to fetch Range Risk Score for a given address
+// The oracle job uses a HTTP task to fetch the risk score from Range API
+// and then parses the JSON response to extract the riskScore field.
+// The riskScore is then multiplied by 10 to convert it to a scale of 0-100
+// and bounded between 0 and 100.
+// The API key is passed as a variable override to the oracle job.
+//
+// Note that this job is designed to be used with the Pinocchio program
+// which neeeds to match the feed hash on-chain to ensure the integrity of the data.
 export function getRangeRiskScoreJob(): OracleJob {
   const job = OracleJob.fromObject({
     tasks: [
@@ -41,22 +49,36 @@ export function getRangeRiskScoreJob(): OracleJob {
   return job;
 }
 
-// Function to fetch the oracle job signature and result
+// Fetch a signed oracle quote **and** build the Ed25519 signature verification
+// Flow:
+// 1) Choose the queue (devnet in this example)
+// 2) Construct a canonical feed (IOracleFeed) with your OracleJob
+// 3) Store feed on Crossbar to get canonical `feedId` (deterministic hash of feed proto)
+// 4) Build the Ed25519 verify ix using `queue.fetchQuoteIx`, pointing at `feedId`
+//    and passing `variableOverrides` so oracles can resolve `${RANGE_API_KEY}`
+//
+// The returned `sigVerifyIx` is the Ed25519 signature verification
 export async function getOracleJobSignature(payer: Keypair): Promise<{ queue_account: PublicKey; sigVerifyIx: TransactionInstruction }> {
   const { gateway, rpcUrl } = await sb.AnchorUtils.loadEnv();
 
   // Get the queue for the network you're deploying on
   //
-  // Mainnet Queue:
-  //let queue = await getDefaultQueue(rpcUrl);
 
-  // Devnet Queue:
+  // Devnet queue (use `getDefaultQueue(rpcUrl)` for mainnet)
   let queue = await sb.getDefaultDevnetQueue(rpcUrl);
   let queue_account = queue.pubkey;
+
+
+  // Crossbar is the metadata & distribution layer (IPFS pinning + REST)
+  // We use it to:
+  //  - store the OracleFeed (to get canonical feedId)
+  //  - fetch/simulate feeds when debuggin
   let crossbar_client = CrossbarClient.default();
 
   console.log("Using Payer:", payer.publicKey.toBase58(), "\n");
 
+  // Build canonical OracleFeed (feed proto) from your job(s)
+  // Keep values minimal and consistent; defaults vs explicit values can change the hash.
   const feed: IOracleFeed = {
     name: "Risk Score",
     jobs: [getRangeRiskScoreJob()],
@@ -65,16 +87,27 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ queue_acc
     maxJobRangePct: 100,
   };
 
-  // returns canonical hash of the feed
-  const { feedId } = await crossbar_client.storeOracleFeed(feed);
 
+  // Persist the feed proto via Crossbar to obtain the deterministic feedId (hash)
+  // returns canonical hash of the feed proto
+  // This is the same hash your program will reconstruct on-chain to ensure integrity
+  // Note: you only need to store the feed once; oracles will cache it after seeing it on-chain
+  const { feedId } = await crossbar_client.storeOracleFeed(feed);
   console.log("FeedId:", feedId);
 
-  const feed_hash = feedId.startsWith("0x") ? feedId : `0x${feedId}`;
 
+  // Build the Ed25519 signature verification instruction for the selected `feedId`.
+  // This instruction verifies signatures from guardians and embeds receipts for your
+  // on-chain `QuoteVerifier` to parse.
+  //
+  // Notes:
+  // - `variableOverrides` are passed to oracles so `${RANGE_API_KEY}` can be injected
+  //   into your HTTP task at runtime (without exposing secrets on-chain).
+  // - `numSignatures` controls consensus level; keep >1 for production critical paths.
+  // - `instructionIdx` tells the Ed25519 program where to put the sig verify in the tx
   const sigVerifyIx = await queue.fetchQuoteIx(
     crossbar_client,
-    [feed_hash],
+    [feedId],
     {
       variableOverrides: { RANGE_API_KEY: process.env.RANGE_API_KEY! },
       numSignatures: 1,
@@ -85,10 +118,15 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ queue_acc
   return { queue_account, sigVerifyIx };
 }
 
+// Build the instruction to call your on-chain program
+// This instruction passes the accounts your program needs:
+//   - queue (to verify the quote)
+//   - sysvars (clock, slot hashes, instructions)
+//   - query_account (the address you want to fetch the risk score for)
+//
+// Note: no data is sent to the program in this example; all info is in accounts
 export function buildGetRiskScoreIx(queue: PublicKey, query_account: PublicKey): TransactionInstruction {
 
-  // Accounts we need to pass to the program
-  //  [queue, clock_sysvar, slothashes_sysvar, instructions_sysvar, query_account]
   return new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [

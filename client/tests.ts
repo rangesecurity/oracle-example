@@ -1,6 +1,5 @@
 // client/tests.ts
-// client/sdk.ts
-// Run the tests: npm test   
+// Run with: `npm test` (see package.json script)
 
 import { strict as assert } from "assert";
 import * as fs from "fs";
@@ -28,7 +27,7 @@ const RPC_URL = process.env.RPC_URL ?? "http://127.0.0.1:8899";
 const DEV_WALLET_KEYPAIR_PATH = process.env.DEV_WALLET_KEYPAIR_PATH ?? "./../keypair.json";
 
 describe("Initialize Oracle Example", function () {
-  this.timeout(60_000);
+  this.timeout(10_000);
 
   const connection = new Connection(RPC_URL, "confirmed");
 
@@ -38,14 +37,28 @@ describe("Initialize Oracle Example", function () {
 
 
   it("initializes the Oracle and call the Oracle Program", async () => {
-    // Discriminator 0 => InitializeBlackNote
+
+    /**
+ *    Build the **quote signature verification** instruction (sigVerifyIx)
+ *    This:
+ *      - Stores your feed on Crossbar (to get a canonical feedId)
+ *      - Builds an Ed25519 verification ix for the guardians’ signatures
+ *    IMPORTANT: This instruction*must be placed at index 0 in the tx
+ *    because in our program the `QuoteVerifier` expects it at index 0 (`verify_instruction_at(0)`).
+ *    Note that the ix can be placed in any index in the tx, but it must match the index
+ *   passed to `verify_instruction_at(idx)` in the `QuoteVerifier`.
+ */
     let { queue_account, sigVerifyIx } = await getOracleJobSignature(DEV_WALLET);
 
-    // Get Quote and other accounts pubkeys
+    // Choose the account you want to check (becomes the address query param
+    // in the on-chain HTTP task definition). Your program will reconstruct
+    // the same feed proto using this pubkey to ensure the hash matches.
     const query_account = new PublicKey("5PAhQiYdLBd6SVdjzBQDxUAEFyDdF5ExNPQfcscnPRj5");
 
-    // Build and send tx
+    // Build the target program instruction
     const ix = buildGetRiskScoreIx(queue_account, query_account);
+
+    // Create the transaction and add both instructions
     const tx = new Transaction().add(sigVerifyIx, ix);
 
     // Fetch the latest blockhash
@@ -55,6 +68,7 @@ describe("Initialize Oracle Example", function () {
     tx.feePayer = DEV_WALLET.publicKey;
     tx.recentBlockhash = latest.blockhash;
 
+    // Send the transaction
     const transactionSignature = await sendAndConfirmTransaction(
       connection,
       tx,
@@ -63,6 +77,8 @@ describe("Initialize Oracle Example", function () {
 
 
     console.log("Fetched RiskScore Via Oracle. Tx:", transactionSignature);
+
+    // Some basic assertion to ensure it went through can be added here
   });
 });
 
