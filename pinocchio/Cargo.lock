@@ -3822,9 +3822,9 @@ dependencies = [
 
 [[package]]
 name = "switchboard-on-demand"
-version = "0.9.3"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01d8c3fe6a5e9174bc91d2b2906c3d8308197d51fb0454a060b63e8e9997b0b5"
+checksum = "0c4784b532f67208ce708e6b2a8c576f0abf2c3184d550b82f6800eeb2e7d82c"
 dependencies = [
  "anyhow",
  "arrayref",
@@ -3839,7 +3839,9 @@ dependencies = [
  "rust_decimal",
  "serde",
  "sha2 0.10.9",
+ "solana-define-syscall 3.0.0",
  "solana-program 3.0.0",
+ "solana-sdk-ids 3.0.0",
  "spl-associated-token-account",
  "spl-token",
  "switchboard-common",

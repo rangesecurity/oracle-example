@@ -6,10 +6,13 @@ on-chain** inside a Solana program.
 
 The example uses:
 
-- **Pinocchio** for the on-chain program
+- 2 implementations for the on-chain program ( **Pinocchio** and **Anchor**)
 - **Switchboard On-Demand** for fetching + signing off-chain data
 - **Range API** for providing trusted risk scores
 - **TypeScript client** for building and submitting the transaction
+
+Note: The Anchor and Pinocchio programs are intentionally equivalent, showcasing
+how Switchboard On-Demand can be used in either framework.
 
 ---
 
@@ -27,8 +30,12 @@ The example uses:
 2. **On-chain program**:
    - Reconstructs the exact same feed definition
    - Hashes it (`SHA-256(length-delimited-protobuf)`) -> `feed_id`
-   - Verifies the signed quote matches this `feed_id`
-   - Logs the verified risk score (0–100)
+   - Uses QuoteVerifier from switchboard-on-demand to verify:
+   - The quote signatures
+   - The quote’s feed_id matches the derived one
+   - The quote is fresh and valid
+
+- Logs the verified risk score (0–100)
 
 If the feed hash doesn’t match or the quote is stale, the transaction fails —
 ensuring **tamper-proof, auditable oracle data**.
@@ -90,7 +97,7 @@ Returns:
 Install dependencies
 
 ```bash
-cd client
+cd anchor/client # or pinocchio/client
 npm install
 ```
 
@@ -103,7 +110,7 @@ npm test
 Expected output:
 
 ```bash
-Using Payer: GmMpbMnSbRs5ee7187xUM72w39tNQTj6xgqFgmkWpgn7
+Using Payer: <YOUR_PAYER_PUBKEY>
 
 [
   { value: '100000000000000000000', feed_hash: '...', num_oracles: 1 }

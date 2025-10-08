@@ -1,0 +1,19 @@
+[features]
+seeds = false
+skip-lint = false
+
+[programs.devnet]
+anchor_oracle_example = "Hiy3MrT746mmcEGDRyomPFCG1quUgLRYvUTxijWPshJH"
+
+[programs.localnet]
+anchor_oracle_example = "Hiy3MrT746mmcEGDRyomPFCG1quUgLRYvUTxijWPshJH"
+
+[provider]
+cluster = "devnet"                       
+wallet = "/Users/josesantos/Desktop/Range/projects/blacknote/keypair.json"      #~/.config/solana/id.json
+
+[registry]
+url = "https://api.apr.dev"
+
+[scripts]
+test = "anchor test"

@@ -1,0 +1,8 @@
+[workspace]
+members = ["programs/risk_oracle_anchor"]
+# Only run tests for the tests crate when you do `cargo test` at the root
+#default-members = ["tests"]
+resolver = "2"
+
+[profile.release]
+overflow-checks = true

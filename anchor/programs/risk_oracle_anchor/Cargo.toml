@@ -1,0 +1,26 @@
+[package]
+name = "anchor-oracle-example"
+version = "0.1.0"
+description = "Range Risk API Oracle Example"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "anchor_oracle_example"
+
+[features]
+default = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+
+[dependencies]
+anchor-lang = "0.31.1"
+switchboard-on-demand = { version = "0.9.2", features = ["anchor","devnet"]}
+switchboard-protos    = { version = "^0.2.1", features = ["serde"]}
+prost = "0.13"
+solana-program = "3.0.0"
+bs58 = "0.5"
