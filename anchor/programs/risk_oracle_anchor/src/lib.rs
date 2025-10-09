@@ -24,14 +24,29 @@ pub mod anchor_oracle_example {
 
     pub fn verify_risk_score_feed<'a>(ctx: Context<VerifyRiskScoreFeed>) -> Result<()> {
         let mut verifier = QuoteVerifier::new();
+        let slot = Clock::get()?.slot;
+
         verifier
             .queue(ctx.accounts.queue.as_ref())
             .slothash_sysvar(ctx.accounts.slothashes.as_ref())
             .ix_sysvar(ctx.accounts.instructions.as_ref())
-            .clock_slot(Clock::get()?.slot);
+            .clock_slot(slot);
 
         // Verify the Ed25519 instruction at index 0
         let quote = verifier.verify_instruction_at(0).unwrap();
+        let quote_slot = quote.slot();
+
+        // Ensure the quote is recent enough (within 50 slots).
+        //
+        if slot.saturating_sub(quote_slot) > 50 {
+            // Extra check: ensure the quote is fresh enough (within 30 slots).
+            msg!(
+                "Quote too old. Current slot: {}, quote slot: {}",
+                slot,
+                quote_slot
+            );
+            return Err(ErrorCode::StaleQuote.into());
+        }
 
         let feeds = quote.feeds();
         require!(!feeds.is_empty(), ErrorCode::NoOracleFeeds);
@@ -142,4 +157,7 @@ pub enum ErrorCode {
 
     #[msg("Failed to verify Ed25519 instruction")]
     VerificationFailed,
+
+    #[msg("Stale quote - the quote is too old")]
+    StaleQuote,
 }

@@ -96,16 +96,7 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ queue_acc
     maxJobRangePct: 100,
   };
 
-
-  // Persist the feed proto via Crossbar to obtain the deterministic feedId (hash)
-  // returns canonical hash of the feed proto
-  // This is the same hash your program will reconstruct on-chain to ensure integrity
-  // Note: you only need to store the feed once; oracles will cache it after seeing it on-chain
-  const { feedId } = await crossbar_client.storeOracleFeed(feed);
-  console.log("FeedId:", feedId);
-
-
-  // Build the Ed25519 signature verification instruction for the selected `feedId`.
+  // Build the Ed25519 signature verification instruction for the selected feed.
   // This instruction verifies signatures from guardians and embeds receipts for your
   // on-chain `QuoteVerifier` to parse.
   //
@@ -113,17 +104,16 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ queue_acc
   // - `variableOverrides` are passed to oracles so `${RANGE_API_KEY}` can be injected
   //   into your HTTP task at runtime (without exposing secrets on-chain).
   // - `numSignatures` controls consensus level; keep >1 for production critical paths.
-  // - `instructionIdx` tells the Ed25519 program where to put the sig verify in the tx
+  // - `instructionIdx` tells the Ed25519 progr am where to put the sig verify in the tx
   const sigVerifyIx = await queue.fetchQuoteIx(
     crossbar_client,
-    [feedId],
+    [feed],
     {
       variableOverrides: { RANGE_API_KEY: process.env.RANGE_API_KEY! },
       numSignatures: 1,
       instructionIdx: 0, // we’ll put this ix at index 0 in the tx
     }
   );
-
   return { queue_account, sigVerifyIx };
 }
 

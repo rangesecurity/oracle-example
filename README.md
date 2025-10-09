@@ -71,12 +71,11 @@ export function getRangeRiskScoreJob(): OracleJob {
 
 Switchboard hashes the serialized feed proto → feed_id.
 
-2. Request a Quote
+2. Request a Quote `getOracleJobSignature()`:
 
-`getOracleJobSignature()`:
-
-- Uploads the feed to Crossbar (Switchboard backend)
-- Requests an oracle quote for that feed
+- Passes the feed directly to Switchboard’s `fetchQuoteIx`
+- Oracles execute the feed tasks, sign the result, and return a quote
+- No need to pre-store the feed on Crossbar — it’s processed on-demand
 
 Returns:
 

@@ -164,8 +164,22 @@ fn process_instruction(
         .clock_slot(slot) // Sets the current slot for freshness verification.
         .queue(queue) // Sets the oracle queue account.
         .max_age(30) // Sets the maximum age of the quote in seconds.
-        .verify_instruction_at(0)
-        .unwrap(); // Verifies the quote is at instruction index 0.
+        .verify_instruction_at(0) // Verifies the quote is at instruction index 0.
+        .map_err(|_| OracleError::InstructionQuoteMissing)?;
+
+    let quote_slot = quote_data.slot();
+
+    // Ensure the quote is recent enough (within 50 slots).
+    //
+    if slot.saturating_sub(quote_slot) > 50 {
+        // Extra check: ensure the quote is fresh enough (within 30 slots).
+        log!(
+            "Quote too old. Current slot: {}, quote slot: {}",
+            slot,
+            quote_slot
+        );
+        return Err(OracleError::StaleQuote.into());
+    }
 
     // Check that at least one verified feed matches our derived feed id.
     //    If matched, we trust its `value()` and can act on it.
@@ -181,8 +195,26 @@ fn process_instruction(
     // identical (different headers/order/fields) or quote wasn’t fetched for
     // this exact feed.
     if !matched {
-        return Err(ProgramError::InvalidInstructionData);
+        return Err(OracleError::FeedIdMismatch.into());
     }
 
     Ok(())
+}
+
+#[derive(Clone, PartialEq)]
+pub enum OracleError {
+    // feed id mismatch
+    FeedIdMismatch,
+    // invalid quote
+    InvalidQuote,
+    // stale quote
+    StaleQuote,
+    // instruction quote missing
+    InstructionQuoteMissing,
+}
+
+impl From<OracleError> for ProgramError {
+    fn from(e: OracleError) -> Self {
+        Self::Custom(e as u32)
+    }
 }
