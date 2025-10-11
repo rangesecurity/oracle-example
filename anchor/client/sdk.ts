@@ -37,7 +37,7 @@ export function getRangeRiskScoreJob(): OracleJob {
           url: "https://api.range.org/v1/risk/address?address=5PAhQiYdLBd6SVdjzBQDxUAEFyDdF5ExNPQfcscnPRj5&network=solana",
           headers: [
             { key: "accept", value: "application/json" },
-            // placeholder resolved on-oracle by Secrets
+            // Resolved on-oracle by Variable Override
             { key: "X-API-KEY", value: "${RANGE_API_KEY}" },
           ],
         },
@@ -72,21 +72,19 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ queue_acc
 
   // Get the queue for the network you're deploying on
   //
-
   // Devnet queue (use `getDefaultQueue(rpcUrl)` for mainnet)
   let queue = await sb.getDefaultDevnetQueue(rpcUrl);
   let queue_account = queue.pubkey;
 
 
-  // Crossbar is the metadata & distribution layer (IPFS pinning + REST)
-  // We use it to:
-  //  - store the OracleFeed (to get canonical feedId)
-  //  - fetch/simulate feeds when debuggin
+  // Crossbar is the metadata & distribution layer (IPFS pinning + REST operations)
+  // It provides essential functionalities for simulating and resolving feeds.
+  //
   let crossbar_client = CrossbarClient.default();
 
   console.log("Using Payer:", payer.publicKey.toBase58(), "\n");
 
-  // Build canonical OracleFeed (feed proto) from your job(s)
+  // Build  IOracleFeed (feed proto) from your job(s)
   // Keep values minimal and consistent; defaults vs explicit values can change the hash.
   const feed: IOracleFeed = {
     name: "Risk Score",
@@ -123,7 +121,7 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ queue_acc
 //   - sysvars (clock, slot hashes, instructions)
 //   - query_account (the address you want to fetch the risk score for)
 //
-// Note: no data is sent to the program in this example; all info is in accounts
+// Note: no data is sent to the program in this example, just the descriminator.
 export function buildGetRiskScoreIx(queue: PublicKey, query_account: PublicKey): TransactionInstruction {
   const data = VERIFY_RISK_SCORE_FEED_IX;
 
