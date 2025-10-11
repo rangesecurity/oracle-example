@@ -75,7 +75,7 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ queue_acc
 
   console.log("Using Payer:", payer.publicKey.toBase58(), "\n");
 
-  // Build canonical OracleFeed (feed proto) from your job(s)
+  // Build  IOracleFeed (feed proto) from your job(s)
   // Keep values minimal and consistent; defaults vs explicit values can change the hash.
   const feed: IOracleFeed = {
     name: "Risk Score",
@@ -87,13 +87,13 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ queue_acc
 
   // Build the Ed25519 signature verification instruction for the selected feed.
   // This instruction verifies signatures from guardians and embeds receipts for your
-  // on-chain `QuoteVerifier` to parse.
+  //  
   //
   // Notes:
   // - `variableOverrides` are passed to oracles so `${RANGE_API_KEY}` can be injected
   //   into your HTTP task at runtime (without exposing secrets on-chain).
   // - `numSignatures` controls consensus level; keep >1 for production critical paths.
-  // - `instructionIdx` tells the Ed25519 progr am where to put the sig verify in the tx
+  // - `instructionIdx` tells the Ed25519 program where to put the sig verify in the tx
   const sigVerifyIx = await queue.fetchQuoteIx(
     crossbar_client,
     [feed],
@@ -106,7 +106,7 @@ export async function getOracleJobSignature(payer: Keypair): Promise<{ queue_acc
   return { queue_account, sigVerifyIx };
 }
 
-// Build the instruction to call your on-chain program
+//  
 // This instruction passes the accounts your program needs:
 //   - queue (to verify the quote)
 //   - sysvars (clock, slot hashes, instructions)
