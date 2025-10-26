@@ -4,8 +4,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::hash::hash;
 use prost::Message;
-use switchboard_on_demand::default_queue;
-use switchboard_on_demand::QueueAccountData;
+use switchboard_on_demand::{default_queue, QueueAccountData};
 use switchboard_on_demand::{Instructions, QuoteVerifier, SlotHashes};
 use switchboard_protos::oracle_job::oracle_job::http_task::Header;
 use switchboard_protos::oracle_job::oracle_job::multiply_task;
